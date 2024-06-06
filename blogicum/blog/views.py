@@ -104,7 +104,7 @@ class PostCreateView(LoginRequiredMixin, PostsReverseMixin, CreateView):
     pass
 
 
-class PostUpdateView(LoginRequiredMixin, OnlyAuthorMixin, PostsReverseMixin, UpdateView):
+class PostUpdateView(OnlyAuthorMixin, PostsReverseMixin, UpdateView):
     """Редактирование поста."""
 
     def dispatch(self, request, *args, **kwargs):
