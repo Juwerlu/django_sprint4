@@ -140,7 +140,7 @@ class PostDetailView(PostsReverseMixin, DetailView):
     template_name = 'blog/detail.html'
     post_object = None
     pk_url_kwargs = 'post_id'
-    
+
     def get_queryset(self):
         self.post_object = get_object_or_404(Post, pk=self.kwargs['pk'])
         if self.post_object.author == self.request.user:
