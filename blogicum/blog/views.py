@@ -50,7 +50,7 @@ class CommentPostMixin:
     def get_success_url(self):
         return reverse(
             'blog:post_detail',
-            kwargs={'pk': self.kwargs['post_pk']}
+            kwargs={'post_pk': self.kwargs['post_pk']}
         )
 
 
@@ -111,7 +111,7 @@ class PostUpdateView(PostsReverseMixin, UpdateView):
         if instance.author != request.user:
             return redirect(
                 'blog:post_detail',
-                pk=post_pk,
+                post_pk=post_pk,
             )
         return super().dispatch(request, *args, **kwargs)
 
@@ -140,10 +140,10 @@ class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
     post_obj = None
-    pk_url_kwargs = 'post_pk'
+    pk_url_kwarg = 'post_pk'
 
     def get_object(self):
-        self.post_obj = get_object_or_404(Post, pk=self.kwargs['pk'])
+        self.post_obj = get_object_or_404(Post, pk=self.kwargs['post_pk'])
         if self.post_obj.author == self.request.user:
             return self.post_obj
         return get_object_or_404(Post.published.order_by(
@@ -210,7 +210,7 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         form.instance.post = get_object_or_404(Post, pk=self.kwargs['post_pk'])
         form.instance.author = self.request.user
         form.save()
-        return redirect('blog:post_detail', pk=self.kwargs['post_pk'])
+        return redirect('blog:post_detail', post_pk=self.kwargs['post_pk'])
 
 
 class CommentUpdateView(LoginRequiredMixin, CommentPostMixin, UpdateView):
