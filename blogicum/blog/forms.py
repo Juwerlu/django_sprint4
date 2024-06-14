@@ -1,6 +1,8 @@
+from django.conf import settings
 from django import forms
 
 from blog.models import Comment, Post, User
+from django.contrib.auth.forms import UserChangeForm
 
 
 class PostForm(forms.ModelForm):
@@ -20,10 +22,11 @@ class CommentForm(forms.ModelForm):
         fields = (
             'text',
         )
-        widgets = {'text': forms.Textarea(attrs={'rows': 3})}
+        widgets = {'text': forms.Textarea(attrs={'rows': settings.ROWS})}
 
 
-class ProfileForm(forms.ModelForm):
+class ProfileForm(UserChangeForm):
+    password = None
 
     class Meta:
         model = User

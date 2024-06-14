@@ -152,3 +152,5 @@ MEDIA_ROOT = BASE_DIR / 'media'
 PAGINATED_BY = 10
 
 LOGIN_URL = 'login'
+
+ROWS = 3
