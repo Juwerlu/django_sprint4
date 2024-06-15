@@ -47,12 +47,12 @@ urlpatterns = [
         name='edit_profile',
     ),
     path(
-        'posts/<int:post_pk>/edit_comment/<int:comment_id>',
+        'posts/<int:post_pk>/edit_comment/<int:comment_pk>',
         views.CommentUpdateView.as_view(),
         name='edit_comment',
     ),
     path(
-        'posts/<int:post_pk>/delete_comment/<int:comment_id>',
+        'posts/<int:post_pk>/delete_comment/<int:comment_pk>',
         views.CommentDeleteView.as_view(),
         name='delete_comment',
     ),

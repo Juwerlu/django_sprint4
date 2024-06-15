@@ -1,8 +1,8 @@
-from django.conf import settings
 from django import forms
+from django.conf import settings
+from django.contrib.auth.forms import UserChangeForm
 
 from blog.models import Comment, Post, User
-from django.contrib.auth.forms import UserChangeForm
 
 
 class PostForm(forms.ModelForm):

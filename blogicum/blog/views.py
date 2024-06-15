@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import (
@@ -42,10 +41,10 @@ class CommentPostMixin:
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
+    pk_url_kwarg = 'comment_pk'
 
-    def get_queryset(self):
-        return self.request.user.comments.filter(author=self.request.user)
+    def get_object(self):
+        return get_object_or_404(Comment, pk=self.kwargs['comment_pk'])
 
     def get_success_url(self):
         return reverse(
@@ -60,11 +59,7 @@ class PostsListView(ListView):
     model = Post
     template_name = 'blog/index.html'
     paginate_by = settings.PAGINATED_BY
-
-    def get_queryset(self):
-        return Post.published.order_by(
-            '-pub_date'
-        ).annotate(comment_count=Count('comments'))
+    queryset = Post.published.all()
 
 
 class CategoryPostsView(ListView):
@@ -74,23 +69,19 @@ class CategoryPostsView(ListView):
     template_name = 'blog/category.html'
     context_object_name = 'page_obj'
     paginate_by = settings.PAGINATED_BY
-    category_obj = None
+    category = None
 
     def get_queryset(self):
-        category_slug = self.kwargs['category_slug']
-        category = get_object_or_404(
+        self.category = get_object_or_404(
             Category,
-            slug=category_slug,
+            slug=self.kwargs['category_slug'],
             is_published=True
         )
-        self.category_obj = category.posts(manager='published').order_by(
-            '-pub_date'
-        ).annotate(comment_count=Count('comments'))
-        return self.category_obj
+        return self.category.posts(manager='published').all()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = self.category_obj
+        context['category'] = self.category
         return context
 
 
@@ -146,9 +137,9 @@ class PostDetailView(DetailView):
         self.post_obj = get_object_or_404(Post, pk=self.kwargs['post_pk'])
         if self.post_obj.author == self.request.user:
             return self.post_obj
-        return get_object_or_404(Post.published.order_by(
-            '-pub_date'
-        ).annotate(comment_count=Count('comments')))
+        return get_object_or_404(Post.published.filter(
+            pk=self.kwargs['post_pk']
+        ))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -165,16 +156,13 @@ class ProfileListView(ListView):
     model = Post
     template_name = 'blog/profile.html'
     paginate_by = settings.PAGINATED_BY
+    author = None
 
     def get_queryset(self):
         self.author = get_object_or_404(User, username=self.kwargs['username'])
         if self.author == self.request.user:
-            return self.author.posts.order_by(
-                '-pub_date'
-            ).annotate(comment_count=Count('comments'))
-        return self.author.posts(manager='published').order_by(
-            '-pub_date'
-        ).annotate(comment_count=Count('comments'))
+            return self.author.posts(manager='annotated').all()
+        return self.author.posts(manager='published').all()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -213,13 +201,13 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return redirect('blog:post_detail', post_pk=self.kwargs['post_pk'])
 
 
-class CommentUpdateView(LoginRequiredMixin, CommentPostMixin, UpdateView):
+class CommentUpdateView(OnlyAuthorMixin, CommentPostMixin, UpdateView):
     """Редактирование комментария."""
 
     pass
 
 
-class CommentDeleteView(LoginRequiredMixin, CommentPostMixin, DeleteView):
+class CommentDeleteView(OnlyAuthorMixin, CommentPostMixin, DeleteView):
     """Удаление комментария."""
 
     pass

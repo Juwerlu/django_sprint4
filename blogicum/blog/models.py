@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import DateTimeField
+from django.db.models import Count, DateTimeField
 from django.urls import reverse
 from django.utils import timezone
 
@@ -60,12 +60,18 @@ class Category(PublishedModel, DateModel):
 
 
 class PostQuerySet(models.QuerySet):
+
+    def annotated(self):
+        return self.order_by(
+            '-pub_date'
+        ).annotate(comment_count=Count('comments'))
+
     def published(self):
         return self.filter(
             is_published=True,
             pub_date__date__lte=timezone.now(),
             category__is_published=True
-        ).select_related('author', 'category', 'location')
+        ).select_related('author', 'category', 'location').annotated()
 
 
 class PublishedPostManager(models.Manager):
@@ -73,9 +79,15 @@ class PublishedPostManager(models.Manager):
         return PostQuerySet(self.model, using=self._db).published()
 
 
+class AnnotatedPostManager(models.Manager):
+    def get_queryset(self):
+        return PostQuerySet(self.model, using=self._db).annotated()
+
+
 class Post(PublishedModel, DateModel):
     objects = models.Manager()
     published = PublishedPostManager()
+    annotated = AnnotatedPostManager()
     title = models.CharField('Заголовок', max_length=settings.MAX_LENGTH)
     text = models.TextField('Текст')
     pub_date = DateTimeField(
