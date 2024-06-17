@@ -11,16 +11,23 @@ from django.views.generic import (
 )
 
 from blog.models import Category, Comment, Post, User
-
 from .forms import CommentForm, PostForm, ProfileForm
 
 
 class OnlyAuthorMixin(UserPassesTestMixin):
     """Миксин для проверки автора объекта."""
 
+    pk_url_kwarg = 'post_id'
+
     def test_func(self):
         object = self.get_object()
         return object.author == self.request.user
+
+    def handle_no_permission(self):
+        return redirect(
+            'blog:post_detail',
+            post_id=self.kwargs['post_id'],
+        )
 
 
 class PostsReverseMixin:
@@ -41,15 +48,15 @@ class CommentPostMixin:
     model = Comment
     form_class = CommentForm
     template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_pk'
+    pk_url_kwarg = 'comment_id'
 
     def get_object(self):
-        return get_object_or_404(Comment, pk=self.kwargs['comment_pk'])
+        return get_object_or_404(Comment, pk=self.kwargs['comment_id'])
 
     def get_success_url(self):
         return reverse(
             'blog:post_detail',
-            kwargs={'post_pk': self.kwargs['post_pk']}
+            kwargs={'post_id': self.kwargs['post_id']}
         )
 
 
@@ -91,27 +98,17 @@ class PostCreateView(LoginRequiredMixin, PostsReverseMixin, CreateView):
     pass
 
 
-class PostUpdateView(PostsReverseMixin, UpdateView):
+class PostUpdateView(OnlyAuthorMixin, PostsReverseMixin, UpdateView):
     """Редактирование поста."""
 
-    pk_url_kwarg = 'post_pk'
-
-    def dispatch(self, request, *args, **kwargs):
-        instance = self.get_object()
-        post_pk = self.kwargs.get('post_pk')
-        if instance.author != request.user:
-            return redirect(
-                'blog:post_detail',
-                post_pk=post_pk,
-            )
-        return super().dispatch(request, *args, **kwargs)
+    pass
 
 
 class PostDeleteView(OnlyAuthorMixin, DeleteView):
     """Удаление поста."""
 
     model = Post
-    pk_url_kwarg = 'post_pk'
+
 
     def get_success_url(self):
         return reverse(
@@ -130,16 +127,16 @@ class PostDetailView(DetailView):
 
     model = Post
     template_name = 'blog/detail.html'
-    post_obj = None
-    pk_url_kwarg = 'post_pk'
+    pk_url_kwarg = 'post_id'
 
     def get_object(self):
-        self.post_obj = get_object_or_404(Post, pk=self.kwargs['post_pk'])
-        if self.post_obj.author == self.request.user:
-            return self.post_obj
-        return get_object_or_404(Post.published.filter(
-            pk=self.kwargs['post_pk']
-        ))
+        post_obj = get_object_or_404(Post, pk=self.kwargs['post_id'])
+        if post_obj.author == self.request.user:
+            return post_obj
+        return get_object_or_404(
+            Post.published,
+            pk=self.kwargs['post_id']
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,10 +192,10 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
     template_name = 'blog/create.html'
 
     def form_valid(self, form):
-        form.instance.post = get_object_or_404(Post, pk=self.kwargs['post_pk'])
+        form.instance.post = get_object_or_404(Post, pk=self.kwargs['post_id'])
         form.instance.author = self.request.user
         form.save()
-        return redirect('blog:post_detail', post_pk=self.kwargs['post_pk'])
+        return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
 
 
 class CommentUpdateView(OnlyAuthorMixin, CommentPostMixin, UpdateView):
