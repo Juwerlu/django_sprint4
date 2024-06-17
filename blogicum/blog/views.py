@@ -109,7 +109,6 @@ class PostDeleteView(OnlyAuthorMixin, DeleteView):
 
     model = Post
 
-
     def get_success_url(self):
         return reverse(
             'blog:profile',
