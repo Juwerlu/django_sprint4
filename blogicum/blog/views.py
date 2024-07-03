@@ -108,6 +108,8 @@ class PostDeleteView(OnlyAuthorMixin, DeleteView):
     """Удаление поста."""
 
     model = Post
+    form_class = PostForm
+    template_name = 'blog/create.html'
 
     def get_success_url(self):
         return reverse(
